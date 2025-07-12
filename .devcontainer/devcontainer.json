@@ -1,0 +1,33 @@
+{
+  "name": "Postgres MCP Dev Environment",
+  "build": {
+    "dockerfile": "${localWorkspaceFolder}/Dockerfile",
+    "context": "${localWorkspaceFolder}",
+  },
+  "userEnvProbe": "loginShell",
+  "workspaceFolder": "/app",
+  "runArgs": [
+    "--name",
+    "postgresmcp_dev_env"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.isort",
+        "ms-python.flake8",
+        "ms-python.mypy-type-checker",
+        "ms-python.black-formatter",
+        "redhat.vscode-yaml",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ipedrazas.kubernetes-snippets",
+        "Tim-Koehler.helm-intellisense",
+        "sandipchitale.vscode-kubernetes-helm-extras",
+        "tamasfe.even-better-toml",
+        "orsenkucher.vscode-graphql",
+        "hashicorp.terraform"
+      ]
+    }
+  }
+}
