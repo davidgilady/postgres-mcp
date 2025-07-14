@@ -12,9 +12,12 @@ from typing import Literal
 from typing import Union
 
 import mcp.types as types
+from mcp import JSONRPCResponse
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 from pydantic import validate_call
+from starlette.requests import Request
+from starlette.responses import Response
 
 from postgres_mcp.index.dta_calc import DatabaseTuningAdvisor
 
@@ -40,7 +43,8 @@ mcp = FastMCP("postgres-mcp")
 PG_STAT_STATEMENTS = "pg_stat_statements"
 HYPOPG_EXTENSION = "hypopg"
 
-ResponseType = List[types.TextContent | types.ImageContent | types.EmbeddedResource]
+ResponseType = List[types.TextContent |
+                    types.ImageContent | types.EmbeddedResource]
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +62,19 @@ current_access_mode = AccessMode.UNRESTRICTED
 shutdown_in_progress = False
 
 
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> Response:
+    return Response({"status": "ok"})
+
+
 async def get_sql_driver() -> Union[SqlDriver, SafeSqlDriver]:
     """Get the appropriate SQL driver based on the current access mode."""
     base_driver = SqlDriver(conn=db_connection)
 
     if current_access_mode == AccessMode.RESTRICTED:
         logger.debug("Using SafeSqlDriver with restrictions (RESTRICTED mode)")
-        return SafeSqlDriver(sql_driver=base_driver, timeout=30)  # 30 second timeout
+        # 30 second timeout
+        return SafeSqlDriver(sql_driver=base_driver, timeout=30)
     else:
         logger.debug("Using unrestricted SqlDriver (UNRESTRICTED mode)")
         return base_driver
@@ -109,7 +119,8 @@ async def list_schemas() -> ResponseType:
 @mcp.tool(description="List objects in a schema")
 async def list_objects(
     schema_name: str = Field(description="Schema name"),
-    object_type: str = Field(description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
+    object_type: str = Field(
+        description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
 ) -> ResponseType:
     """List objects of a given type in a schema."""
     try:
@@ -128,7 +139,8 @@ async def list_objects(
                 [schema_name, table_type],
             )
             objects = (
-                [{"schema": row.cells["table_schema"], "name": row.cells["table_name"], "type": row.cells["table_type"]} for row in rows]
+                [{"schema": row.cells["table_schema"], "name": row.cells["table_name"],
+                    "type": row.cells["table_type"]} for row in rows]
                 if rows
                 else []
             )
@@ -145,7 +157,8 @@ async def list_objects(
                 [schema_name],
             )
             objects = (
-                [{"schema": row.cells["sequence_schema"], "name": row.cells["sequence_name"], "data_type": row.cells["data_type"]} for row in rows]
+                [{"schema": row.cells["sequence_schema"], "name": row.cells["sequence_name"],
+                    "data_type": row.cells["data_type"]} for row in rows]
                 if rows
                 else []
             )
@@ -160,7 +173,8 @@ async def list_objects(
                 """
             )
             objects = (
-                [{"name": row.cells["extname"], "version": row.cells["extversion"], "relocatable": row.cells["extrelocatable"]} for row in rows]
+                [{"name": row.cells["extname"], "version": row.cells["extversion"],
+                    "relocatable": row.cells["extrelocatable"]} for row in rows]
                 if rows
                 else []
             )
@@ -178,7 +192,8 @@ async def list_objects(
 async def get_object_details(
     schema_name: str = Field(description="Schema name"),
     object_name: str = Field(description="Object name"),
-    object_type: str = Field(description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
+    object_type: str = Field(
+        description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
 ) -> ResponseType:
     """Get detailed information about a database object."""
     try:
@@ -236,7 +251,8 @@ async def get_object_details(
                     if col:
                         constraints[cname]["columns"].append(col)
 
-            constraints_list = [{"name": name, **data} for name, data in constraints.items()]
+            constraints_list = [{"name": name, **data}
+                                for name, data in constraints.items()]
 
             # Get indexes
             idx_rows = await SafeSqlDriver.execute_param_query(
@@ -249,7 +265,8 @@ async def get_object_details(
                 [schema_name, object_name],
             )
 
-            indexes = [{"name": r.cells["indexname"], "definition": r.cells["indexdef"]} for r in idx_rows] if idx_rows else []
+            indexes = [{"name": r.cells["indexname"], "definition": r.cells["indexdef"]}
+                       for r in idx_rows] if idx_rows else []
 
             result = {
                 "basic": {"schema": schema_name, "name": object_name, "type": object_type},
@@ -294,7 +311,8 @@ async def get_object_details(
 
             if rows and rows[0]:
                 row = rows[0]
-                result = {"name": row.cells["extname"], "version": row.cells["extversion"], "relocatable": row.cells["extrelocatable"]}
+                result = {"name": row.cells["extname"], "version": row.cells["extversion"],
+                          "relocatable": row.cells["extrelocatable"]}
             else:
                 result = {}
 
@@ -405,8 +423,10 @@ async def execute_sql(
 @mcp.tool(description="Analyze frequently executed queries in the database and recommend optimal indexes")
 @validate_call
 async def analyze_workload_indexes(
-    max_index_size_mb: int = Field(description="Max index size in MB", default=10000),
-    method: Literal["dta", "llm"] = Field(description="Method to use for analysis", default="dta"),
+    max_index_size_mb: int = Field(
+        description="Max index size in MB", default=10000),
+    method: Literal["dta", "llm"] = Field(
+        description="Method to use for analysis", default="dta"),
 ) -> ResponseType:
     """Analyze frequently executed queries in the database and recommend optimal indexes."""
     try:
@@ -427,8 +447,10 @@ async def analyze_workload_indexes(
 @validate_call
 async def analyze_query_indexes(
     queries: list[str] = Field(description="List of Query strings to analyze"),
-    max_index_size_mb: int = Field(description="Max index size in MB", default=10000),
-    method: Literal["dta", "llm"] = Field(description="Method to use for analysis", default="dta"),
+    max_index_size_mb: int = Field(
+        description="Max index size in MB", default=10000),
+    method: Literal["dta", "llm"] = Field(
+        description="Method to use for analysis", default="dta"),
 ) -> ResponseType:
     """Analyze a list of SQL queries and recommend optimal indexes."""
     if len(queries) == 0:
@@ -489,7 +511,8 @@ async def get_top_queries(
         "for resource-intensive queries",
         default="resources",
     ),
-    limit: int = Field(description="Number of queries to return when ranking based on mean_time or total_time", default=10),
+    limit: int = Field(
+        description="Number of queries to return when ranking based on mean_time or total_time", default=10),
 ) -> ResponseType:
     try:
         sql_driver = await get_sql_driver()
@@ -512,7 +535,8 @@ async def get_top_queries(
 async def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="PostgreSQL MCP Server")
-    parser.add_argument("database_url", help="Database connection URL", nargs="?")
+    parser.add_argument(
+        "database_url", help="Database connection URL", nargs="?")
     parser.add_argument(
         "--access-mode",
         type=str,
@@ -552,7 +576,8 @@ async def main():
     else:
         mcp.add_tool(execute_sql, description="Execute a read-only SQL query")
 
-    logger.info(f"Starting PostgreSQL MCP Server in {current_access_mode.upper()} mode")
+    logger.info(
+        f"Starting PostgreSQL MCP Server in {current_access_mode.upper()} mode")
 
     # Get database URL from environment variable or command line
     database_url = os.environ.get("DATABASE_URI", args.database_url)
@@ -565,7 +590,8 @@ async def main():
     # Initialize database connection pool
     try:
         await db_connection.pool_connect(database_url)
-        logger.info("Successfully connected to database and initialized connection pool")
+        logger.info(
+            "Successfully connected to database and initialized connection pool")
     except Exception as e:
         logger.warning(
             f"Could not connect to database: {obfuscate_password(str(e))}",
@@ -579,7 +605,8 @@ async def main():
         loop = asyncio.get_running_loop()
         signals = (signal.SIGTERM, signal.SIGINT)
         for s in signals:
-            loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s)))
+            loop.add_signal_handler(
+                s, lambda s=s: asyncio.create_task(shutdown(s)))
     except NotImplementedError:
         # Windows doesn't support signals properly
         logger.warning("Signal handling not supported on Windows")
