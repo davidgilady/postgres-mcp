@@ -12,7 +12,6 @@ from typing import Literal
 from typing import Union
 
 import mcp.types as types
-from mcp import JSONRPCResponse
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 from pydantic import validate_call
