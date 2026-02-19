@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from postgres_mcp.server import AccessMode
-from postgres_mcp.server import get_sql_driver
+from postgres_mcp.database_service import DatabaseService
+from postgres_mcp.models import AccessMode
 from postgres_mcp.sql import SafeSqlDriver
 from postgres_mcp.sql import SqlDriver
 
@@ -26,10 +26,14 @@ async def test_force_readonly_enforcement():
     mock_execute.return_value = [SqlDriver.RowResult(cells={"test": "value"})]
 
     # Test UNRESTRICTED mode
-    with patch("postgres_mcp.server.current_access_mode", AccessMode.UNRESTRICTED), patch(
-        "postgres_mcp.server.db_connection", mock_conn_pool
-    ), patch.object(SqlDriver, "_execute_with_connection", mock_execute):
-        driver = await get_sql_driver()
+    service = DatabaseService(
+        database_url="postgresql://user:pass@localhost/test",
+        current_access_mode=AccessMode.UNRESTRICTED
+    )
+    with patch.object(service, 'db_connection', mock_conn_pool), patch.object(
+        SqlDriver, "_execute_with_connection", mock_execute
+    ):
+        driver = await service.get_sql_driver()
         assert isinstance(driver, SqlDriver)
         assert not isinstance(driver, SafeSqlDriver)
 
@@ -55,10 +59,14 @@ async def test_force_readonly_enforcement():
         assert mock_execute.call_args[1]["force_readonly"] is False
 
     # Test RESTRICTED mode
-    with patch("postgres_mcp.server.current_access_mode", AccessMode.RESTRICTED), patch(
-        "postgres_mcp.server.db_connection", mock_conn_pool
-    ), patch.object(SqlDriver, "_execute_with_connection", mock_execute):
-        driver = await get_sql_driver()
+    service = DatabaseService(
+        database_url="postgresql://user:pass@localhost/test",
+        current_access_mode=AccessMode.RESTRICTED
+    )
+    with patch.object(service, 'db_connection', mock_conn_pool), patch.object(
+        SqlDriver, "_execute_with_connection", mock_execute
+    ):
+        driver = await service.get_sql_driver()
         assert isinstance(driver, SafeSqlDriver)
 
         # Test default behavior
