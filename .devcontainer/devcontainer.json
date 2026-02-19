@@ -1,8 +1,8 @@
 {
   "name": "Postgres MCP Dev Environment",
   "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
-  "postCreateCommand": "/app/.devcontainer/setup_devcontainer.sh",
   "userEnvProbe": "loginShell",
+  "postCreateCommand": ".devcontainer/setup_devcontainer.sh",
   "workspaceFolder": "/app",
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
   "runArgs": [
@@ -12,7 +12,8 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "python.testing.pytestEnabled": true
       },
       "extensions": [
         "ms-python.python",
