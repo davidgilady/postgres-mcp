@@ -26,13 +26,8 @@ async def test_force_readonly_enforcement():
     mock_execute.return_value = [SqlDriver.RowResult(cells={"test": "value"})]
 
     # Test UNRESTRICTED mode
-    service = DatabaseService(
-        database_url="postgresql://user:pass@localhost/test",
-        current_access_mode=AccessMode.UNRESTRICTED
-    )
-    with patch.object(service, 'db_connection', mock_conn_pool), patch.object(
-        SqlDriver, "_execute_with_connection", mock_execute
-    ):
+    service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=AccessMode.UNRESTRICTED)
+    with patch.object(service, "db_connection", mock_conn_pool), patch.object(SqlDriver, "_execute_with_connection", mock_execute):
         driver = await service.get_sql_driver()
         assert isinstance(driver, SqlDriver)
         assert not isinstance(driver, SafeSqlDriver)
@@ -59,13 +54,8 @@ async def test_force_readonly_enforcement():
         assert mock_execute.call_args[1]["force_readonly"] is False
 
     # Test RESTRICTED mode
-    service = DatabaseService(
-        database_url="postgresql://user:pass@localhost/test",
-        current_access_mode=AccessMode.RESTRICTED
-    )
-    with patch.object(service, 'db_connection', mock_conn_pool), patch.object(
-        SqlDriver, "_execute_with_connection", mock_execute
-    ):
+    service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=AccessMode.RESTRICTED)
+    with patch.object(service, "db_connection", mock_conn_pool), patch.object(SqlDriver, "_execute_with_connection", mock_execute):
         driver = await service.get_sql_driver()
         assert isinstance(driver, SafeSqlDriver)
 

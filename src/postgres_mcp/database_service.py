@@ -29,8 +29,7 @@ from .top_queries import TopQueriesCalc
 PG_STAT_STATEMENTS = "pg_stat_statements"
 HYPOPG_EXTENSION = "hypopg"
 
-ResponseType = List[types.TextContent |
-                    types.ImageContent | types.EmbeddedResource]
+ResponseType = List[types.TextContent | types.ImageContent | types.EmbeddedResource]
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +48,7 @@ class DatabaseService:
         base_driver = SqlDriver(conn=self.db_connection)
 
         if self.current_access_mode == models.AccessMode.RESTRICTED:
-            logger.debug(
-                "Using SafeSqlDriver with restrictions (RESTRICTED mode)")
+            logger.debug("Using SafeSqlDriver with restrictions (RESTRICTED mode)")
             # 30 second timeout
             return SafeSqlDriver(sql_driver=base_driver, timeout=30)
         else:
@@ -58,13 +56,11 @@ class DatabaseService:
             return base_driver
 
     async def create_db_connection(self) -> DbConnPool:
-        logger.info(
-            f"Creating new database connection pool for URL: {obfuscate_password(self.database_url)}")
+        logger.info(f"Creating new database connection pool for URL: {obfuscate_password(self.database_url)}")
         self.db_connection = DbConnPool(connection_url=self.database_url)
         try:
             await self.db_connection.pool_connect(self.database_url)
-            logger.info(
-                "Successfully connected to database and initialized connection pool")
+            logger.info("Successfully connected to database and initialized connection pool")
             return self.db_connection
         except Exception as e:
             logger.warning(
@@ -78,6 +74,7 @@ class DatabaseService:
     def format_text_response(self, text: Any) -> ResponseType:
         """Format a text response."""
         import mcp.types as types
+
         return [types.TextContent(type="text", text=str(text))]
 
     def format_error_response(self, error: str) -> ResponseType:
@@ -130,8 +127,7 @@ class DatabaseService:
                     [schema_name, table_type],
                 )
                 objects = (
-                    [{"schema": row.cells["table_schema"], "name": row.cells["table_name"],
-                        "type": row.cells["table_type"]} for row in rows]
+                    [{"schema": row.cells["table_schema"], "name": row.cells["table_name"], "type": row.cells["table_type"]} for row in rows]
                     if rows
                     else []
                 )
@@ -148,8 +144,10 @@ class DatabaseService:
                     [schema_name],
                 )
                 objects = (
-                    [{"schema": row.cells["sequence_schema"], "name": row.cells["sequence_name"],
-                        "data_type": row.cells["data_type"]} for row in rows]
+                    [
+                        {"schema": row.cells["sequence_schema"], "name": row.cells["sequence_name"], "data_type": row.cells["data_type"]}
+                        for row in rows
+                    ]
                     if rows
                     else []
                 )
@@ -164,8 +162,7 @@ class DatabaseService:
                     """
                 )
                 objects = (
-                    [{"name": row.cells["extname"], "version": row.cells["extversion"],
-                        "relocatable": row.cells["extrelocatable"]} for row in rows]
+                    [{"name": row.cells["extname"], "version": row.cells["extversion"], "relocatable": row.cells["extrelocatable"]} for row in rows]
                     if rows
                     else []
                 )
@@ -240,8 +237,7 @@ class DatabaseService:
                         if col:
                             constraints[cname]["columns"].append(col)
 
-                constraints_list = [{"name": name, **data}
-                                    for name, data in constraints.items()]
+                constraints_list = [{"name": name, **data} for name, data in constraints.items()]
 
                 # Get indexes
                 idx_rows = await SafeSqlDriver.execute_param_query(
@@ -254,8 +250,7 @@ class DatabaseService:
                     [schema_name, object_name],
                 )
 
-                indexes = [{"name": r.cells["indexname"], "definition": r.cells["indexdef"]}
-                           for r in idx_rows] if idx_rows else []
+                indexes = [{"name": r.cells["indexname"], "definition": r.cells["indexdef"]} for r in idx_rows] if idx_rows else []
 
                 result = {
                     "basic": {"schema": schema_name, "name": object_name, "type": object_type},
@@ -300,8 +295,7 @@ class DatabaseService:
 
                 if rows and rows[0]:
                     row = rows[0]
-                    result = {"name": row.cells["extname"], "version": row.cells["extversion"],
-                              "relocatable": row.cells["extrelocatable"]}
+                    result = {"name": row.cells["extname"], "version": row.cells["extversion"], "relocatable": row.cells["extrelocatable"]}
                 else:
                     result = {}
 
@@ -402,8 +396,7 @@ class DatabaseService:
         try:
             sql_driver = await self.get_sql_driver()
             if method == "dta":
-                index_tuning: IndexTuningBase = DatabaseTuningAdvisor(
-                    sql_driver)
+                index_tuning: IndexTuningBase = DatabaseTuningAdvisor(sql_driver)
             else:
                 index_tuning = LLMOptimizerTool(sql_driver)
             dta_tool = TextPresentation(sql_driver, index_tuning)
@@ -428,8 +421,7 @@ class DatabaseService:
         try:
             sql_driver = await self.get_sql_driver()
             if method == "dta":
-                index_tuning: IndexTuningBase = DatabaseTuningAdvisor(
-                    sql_driver)
+                index_tuning: IndexTuningBase = DatabaseTuningAdvisor(sql_driver)
             else:
                 index_tuning = LLMOptimizerTool(sql_driver)
             dta_tool = TextPresentation(sql_driver, index_tuning)

@@ -29,8 +29,7 @@ mcp = FastMCP("postgres-mcp")
 PG_STAT_STATEMENTS = "pg_stat_statements"
 HYPOPG_EXTENSION = "hypopg"
 
-ResponseType = List[types.TextContent |
-                    types.ImageContent | types.EmbeddedResource]
+ResponseType = List[types.TextContent | types.ImageContent | types.EmbeddedResource]
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +47,7 @@ shutdown_in_progress = False
 async def get_service(database_name: str) -> DatabaseService:
     if database_name not in db_services:
         database_url = create_database_url(database_name)
-        db_services[database_name] = DatabaseService(
-            database_url, current_access_mode)
+        db_services[database_name] = DatabaseService(database_url, current_access_mode)
     return db_services[database_name]
 
 
@@ -68,8 +66,7 @@ async def list_schemas(database_name: str = Field(description="Database name")) 
 async def list_objects(
     database_name: str = Field(description="Database name"),
     schema_name: str = Field(description="Schema name"),
-    object_type: str = Field(
-        description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
+    object_type: str = Field(description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
 ) -> ResponseType:
     service = await get_service(database_name)
     return await service.list_objects(schema_name, object_type)
@@ -80,8 +77,7 @@ async def get_object_details(
     database_name: str = Field(description="Database name"),
     schema_name: str = Field(description="Schema name"),
     object_name: str = Field(description="Object name"),
-    object_type: str = Field(
-        description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
+    object_type: str = Field(description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
 ) -> ResponseType:
     service = await get_service(database_name)
     return await service.get_object_details(schema_name, object_name, object_type)
@@ -127,10 +123,8 @@ async def execute_sql(
 @validate_call
 async def analyze_workload_indexes(
     database_name: str = Field(description="Database name"),
-    max_index_size_mb: int = Field(
-        description="Max index size in MB", default=10000),
-    method: Literal["dta", "llm"] = Field(
-        description="Method to use for analysis", default="dta"),
+    max_index_size_mb: int = Field(description="Max index size in MB", default=10000),
+    method: Literal["dta", "llm"] = Field(description="Method to use for analysis", default="dta"),
 ) -> ResponseType:
     service = await get_service(database_name)
     return await service.analyze_workload_indexes(max_index_size_mb, method)
@@ -141,10 +135,8 @@ async def analyze_workload_indexes(
 async def analyze_query_indexes(
     database_name: str = Field(description="Database name"),
     queries: list[str] = Field(description="List of Query strings to analyze"),
-    max_index_size_mb: int = Field(
-        description="Max index size in MB", default=10000),
-    method: Literal["dta", "llm"] = Field(
-        description="Method to use for analysis", default="dta"),
+    max_index_size_mb: int = Field(description="Max index size in MB", default=10000),
+    method: Literal["dta", "llm"] = Field(description="Method to use for analysis", default="dta"),
 ) -> ResponseType:
     service = await get_service(database_name)
     return await service.analyze_query_indexes(queries, max_index_size_mb, method)
@@ -184,8 +176,7 @@ async def get_top_queries(
         "for resource-intensive queries",
         default="resources",
     ),
-    limit: int = Field(
-        description="Number of queries to return when ranking based on mean_time or total_time", default=10),
+    limit: int = Field(description="Number of queries to return when ranking based on mean_time or total_time", default=10),
 ) -> ResponseType:
     service = await get_service(database_name)
     return await service.get_top_queries(sort_by, limit)
@@ -194,8 +185,7 @@ async def get_top_queries(
 async def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="PostgreSQL MCP Server")
-    parser.add_argument(
-        "database_host", help="Database host: e.g database.example.com", nargs="?")
+    parser.add_argument("database_host", help="Database host: e.g database.example.com", nargs="?")
     parser.add_argument(
         "--database-port",
         type=int,
@@ -212,7 +202,7 @@ async def main():
         "--database-password",
         type=str,
         default=None,
-        help="Database password (default: empty, but recommended to set via environment variable or credentials file for security)"
+        help="Database password (default: empty, but recommended to set via environment variable or credentials file for security)",
     )
     parser.add_argument(
         "--database-creds-file",
@@ -261,13 +251,10 @@ async def main():
     database_port = os.environ.get("DATABASE_PORT", args.database_port)
 
     if args.database_creds_file:
-        database_username, database_password = read_database_creds(
-            args.database_creds_file)
+        database_username, database_password = read_database_creds(args.database_creds_file)
     else:
-        database_username = os.environ.get(
-            "DATABASE_USERNAME", args.database_username)
-        database_password = os.environ.get(
-            "DATABASE_PASSWORD", args.database_password)
+        database_username = os.environ.get("DATABASE_USERNAME", args.database_username)
+        database_password = os.environ.get("DATABASE_PASSWORD", args.database_password)
 
     # Add the query tool with a description appropriate to the access mode
     if current_access_mode == AccessMode.UNRESTRICTED:
@@ -277,15 +264,15 @@ async def main():
 
     logger.info(
         f"Starting PostgreSQL MCP Server in {current_access_mode.upper()} mode. transport={args.transport}, database_host={database_host}, "
-        f"database_port={database_port}, database_username={database_username}, sse_host={args.sse_host}, sse_port={args.sse_port}")
+        f"database_port={database_port}, database_username={database_username}, sse_host={args.sse_host}, sse_port={args.sse_port}"
+    )
 
     # Set up proper shutdown handling
     try:
         loop = asyncio.get_running_loop()
         signals = (signal.SIGTERM, signal.SIGINT)
         for s in signals:
-            loop.add_signal_handler(
-                s, lambda s=s: asyncio.create_task(shutdown(s)))
+            loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s)))
     except NotImplementedError:
         # Windows doesn't support signals properly
         logger.warning("Signal handling not supported on Windows")
@@ -307,8 +294,7 @@ def read_database_creds(creds_file: str) -> tuple[str, str]:
         with open(creds_file) as f:
             lines = f.read().splitlines()
             if len(lines) < 2:
-                raise ValueError(
-                    "Credentials file must contain at least two lines: username and password")
+                raise ValueError("Credentials file must contain at least two lines: username and password")
             return lines[0], lines[1]
     except Exception as e:
         logger.error(f"Error reading database credentials from file: {e}")
@@ -317,9 +303,7 @@ def read_database_creds(creds_file: str) -> tuple[str, str]:
 
 def create_database_url(database_name: str) -> str:
     if not database_host:
-        raise ValueError(
-            "Database host must be specified via command line argument or DATABASE_HOST environment variable"
-        )
+        raise ValueError("Database host must be specified via command line argument or DATABASE_HOST environment variable")
     if not database_username:
         raise ValueError(
             "Database username must be specified via command line argument, DATABASE_USERNAME environment variable or a database credentials file"

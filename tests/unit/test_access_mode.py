@@ -30,11 +30,8 @@ def mock_db_connection():
 @pytest.mark.asyncio
 async def test_get_sql_driver_returns_correct_driver(access_mode, expected_driver_type, mock_db_connection):
     """Test that get_sql_driver returns the correct driver type based on access mode."""
-    service = DatabaseService(
-        database_url="postgresql://user:pass@localhost/test",
-        current_access_mode=access_mode
-    )
-    with patch.object(service, 'db_connection', mock_db_connection):
+    service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=access_mode)
+    with patch.object(service, "db_connection", mock_db_connection):
         driver = await service.get_sql_driver()
         assert isinstance(driver, expected_driver_type)
 
@@ -47,11 +44,8 @@ async def test_get_sql_driver_returns_correct_driver(access_mode, expected_drive
 @pytest.mark.asyncio
 async def test_get_sql_driver_sets_timeout_in_restricted_mode(mock_db_connection):
     """Test that get_sql_driver sets the timeout in restricted mode."""
-    service = DatabaseService(
-        database_url="postgresql://user:pass@localhost/test",
-        current_access_mode=AccessMode.RESTRICTED
-    )
-    with patch.object(service, 'db_connection', mock_db_connection):
+    service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=AccessMode.RESTRICTED)
+    with patch.object(service, "db_connection", mock_db_connection):
         driver = await service.get_sql_driver()
         assert isinstance(driver, SafeSqlDriver)
         assert driver.timeout == 30
@@ -61,11 +55,8 @@ async def test_get_sql_driver_sets_timeout_in_restricted_mode(mock_db_connection
 @pytest.mark.asyncio
 async def test_get_sql_driver_in_unrestricted_mode_no_timeout(mock_db_connection):
     """Test that get_sql_driver in unrestricted mode is a regular SqlDriver."""
-    service = DatabaseService(
-        database_url="postgresql://user:pass@localhost/test",
-        current_access_mode=AccessMode.UNRESTRICTED
-    )
-    with patch.object(service, 'db_connection', mock_db_connection):
+    service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=AccessMode.UNRESTRICTED)
+    with patch.object(service, "db_connection", mock_db_connection):
         driver = await service.get_sql_driver()
         assert isinstance(driver, SqlDriver)
         assert not hasattr(driver, "timeout")
@@ -92,8 +83,7 @@ async def test_command_line_parsing():
         asyncio.run = AsyncMock()
 
         with (
-            patch("postgres_mcp.server.current_access_mode",
-                  AccessMode.UNRESTRICTED),
+            patch("postgres_mcp.server.current_access_mode", AccessMode.UNRESTRICTED),
             patch("postgres_mcp.sql.sql_driver.DbConnPool.pool_connect", AsyncMock()),
             patch("postgres_mcp.server.mcp.run_stdio_async", AsyncMock()),
             patch("postgres_mcp.server.shutdown", AsyncMock()),

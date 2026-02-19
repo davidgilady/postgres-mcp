@@ -13,10 +13,7 @@ from postgres_mcp.models import AccessMode
 @pytest_asyncio.fixture
 async def database_service():
     """Create a mock DatabaseService for testing."""
-    service = DatabaseService(
-        database_url="postgresql://user:pass@localhost/test",
-        current_access_mode=AccessMode.UNRESTRICTED
-    )
+    service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=AccessMode.UNRESTRICTED)
     return service
 
 
@@ -41,9 +38,9 @@ async def test_explain_query_integration(database_service):
     mock_text_result.text = result_text
 
     # Patch the format_text_response method on the service
-    with patch.object(database_service, 'format_text_response', return_value=[mock_text_result]):
+    with patch.object(database_service, "format_text_response", return_value=[mock_text_result]):
         # Patch the get_sql_driver method
-        with patch.object(database_service, 'get_sql_driver'):
+        with patch.object(database_service, "get_sql_driver"):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.database_service.ExplainPlanTool") as mock_tool_class:
                 mock_tool = MagicMock()
@@ -61,15 +58,14 @@ async def test_explain_query_integration(database_service):
 async def test_explain_query_with_analyze_integration(database_service):
     """Test the explain_query tool with analyze=True."""
     # Mock response with format_text_response
-    result_text = json.dumps(
-        {"Plan": {"Node Type": "Seq Scan"}, "Execution Time": 1.23})
+    result_text = json.dumps({"Plan": {"Node Type": "Seq Scan"}, "Execution Time": 1.23})
     mock_text_result = MagicMock()
     mock_text_result.text = result_text
 
     # Patch the format_text_response method on the service
-    with patch.object(database_service, 'format_text_response', return_value=[mock_text_result]):
+    with patch.object(database_service, "format_text_response", return_value=[mock_text_result]):
         # Patch the get_sql_driver method
-        with patch.object(database_service, 'get_sql_driver'):
+        with patch.object(database_service, "get_sql_driver"):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.database_service.ExplainPlanTool") as mock_tool_class:
                 mock_tool = MagicMock()
@@ -96,14 +92,14 @@ async def test_explain_query_with_hypothetical_indexes_integration(database_serv
     test_indexes = [{"table": "users", "columns": ["email"]}]
 
     # Patch the format_text_response method on the service
-    with patch.object(database_service, 'format_text_response', return_value=[mock_text_result]):
+    with patch.object(database_service, "format_text_response", return_value=[mock_text_result]):
         # Create mock SafeSqlDriver that returns extension exists
         mock_safe_driver = mock_safe_sql_driver
         mock_execute_query = AsyncMock(return_value=[MockCell({"exists": 1})])
         mock_safe_driver.execute_query = mock_execute_query
 
         # Patch the get_sql_driver method
-        with patch.object(database_service, 'get_sql_driver', return_value=mock_safe_driver):
+        with patch.object(database_service, "get_sql_driver", return_value=mock_safe_driver):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.database_service.ExplainPlanTool") as mock_tool_class:
                 mock_tool = MagicMock()
@@ -135,9 +131,9 @@ async def test_explain_query_missing_hypopg_integration(database_service):
     mock_safe_driver.execute_query = mock_execute_query
 
     # Patch the format_text_response method on the service
-    with patch.object(database_service, 'format_text_response', return_value=[mock_text_result]):
+    with patch.object(database_service, "format_text_response", return_value=[mock_text_result]):
         # Patch the get_sql_driver method
-        with patch.object(database_service, 'get_sql_driver', return_value=mock_safe_driver):
+        with patch.object(database_service, "get_sql_driver", return_value=mock_safe_driver):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.database_service.ExplainPlanTool") as mock_tool_class:
                 mock_tool = MagicMock()
@@ -160,10 +156,11 @@ async def test_explain_query_error_handling_integration(database_service):
     mock_text_result.text = f"Error: {error_message}"
 
     # Patch the format_error_response method on the service
-    with patch.object(database_service, 'format_error_response', return_value=[mock_text_result]):
+    with patch.object(database_service, "format_error_response", return_value=[mock_text_result]):
         # Patch the get_sql_driver method to throw an exception
         with patch.object(
-            database_service, 'get_sql_driver',
+            database_service,
+            "get_sql_driver",
             side_effect=Exception(error_message),
         ):
             result = await database_service.explain_query("INVALID SQL")
