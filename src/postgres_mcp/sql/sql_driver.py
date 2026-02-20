@@ -212,11 +212,12 @@ class SqlDriver:
                 # Direct connection approach
                 return await self._execute_with_connection(self.conn, query, params, force_readonly=force_readonly)
         except Exception as e:
-            # Mark pool as invalid if there was a connection issue
-            if self.conn and self.is_pool:
-                self.conn._is_valid = False  # type: ignore
-                self.conn._last_error = str(e)  # type: ignore
-            elif self.conn and not self.is_pool:
+            # For direct (non-pool) connections, clear the reference so it
+            # will be re-established on the next call.  Pool connections are
+            # managed by psycopg_pool which handles broken connections
+            # internally — invalidating the whole pool here would race with
+            # concurrent in-flight queries that still hold a reference to it.
+            if self.conn and not self.is_pool:
                 self.conn = None
 
             raise e
@@ -240,7 +241,8 @@ class SqlDriver:
                 while cursor.nextset():
                     pass
 
-                if cursor.description is None:  # No results (like DDL statements)
+                # No results (like DDL statements)
+                if cursor.description is None:
                     if not force_readonly:
                         await cursor.execute("COMMIT")
                     elif transaction_started:
