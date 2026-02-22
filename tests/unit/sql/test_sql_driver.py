@@ -327,12 +327,20 @@ async def test_execute_query_from_pool(mock_db_pool):
 
 
 @pytest.mark.asyncio
-async def test_connection_error_marks_pool_invalid(mock_db_pool):
-    """Test that connection errors mark the pool as invalid."""
+async def test_connection_error_does_not_invalidate_pool(mock_db_pool):
+    """Test that query errors do not mark the pool as invalid.
+
+    The pool manages its own connection health internally via psycopg_pool.
+    Blindly invalidating the pool on every error would race with concurrent
+    in-flight queries that still reference the same pool.
+    """
     db_pool, connection, cursor = mock_db_pool
 
     # Configure pool_connect to raise an exception
     db_pool.pool_connect.side_effect = Exception("Connection failed")
+
+    # Mark pool as valid before the query
+    db_pool._is_valid = True
 
     # Create SqlDriver with the mocked pool
     driver = SqlDriver(conn=db_pool)
@@ -341,13 +349,8 @@ async def test_connection_error_marks_pool_invalid(mock_db_pool):
     with pytest.raises(Exception):
         await driver.execute_query("SELECT * FROM test")
 
-    # Make pool invalid manually (since we're bypassing the actual method)
-    db_pool._is_valid = False
-    db_pool._last_error = "Connection failed"
-
-    # Verify pool was marked as invalid
-    assert db_pool._is_valid is False
-    assert isinstance(db_pool._last_error, str)
+    # Pool should remain valid — the pool itself handles connection health
+    assert db_pool._is_valid is True
 
 
 @pytest.mark.asyncio
