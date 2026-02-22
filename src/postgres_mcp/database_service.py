@@ -1,4 +1,5 @@
 # ruff: noqa: B008
+import asyncio
 import logging
 from typing import Any
 from typing import List
@@ -38,12 +39,16 @@ class DatabaseService:
     def __init__(self, database_url: str, current_access_mode: models.AccessMode):
         self.database_url = database_url
         self.current_access_mode = current_access_mode
+        self._connect_lock = asyncio.Lock()
 
     db_connection: Optional[DbConnPool] = None
 
     async def get_sql_driver(self) -> Union[SqlDriver, SafeSqlDriver]:
-        if not self.db_connection:
-            self.db_connection = await self.create_db_connection()
+        if not self.db_connection or not self.db_connection.is_valid:
+            async with self._connect_lock:
+                # Re-check after acquiring lock
+                if not self.db_connection or not self.db_connection.is_valid:
+                    self.db_connection = await self.create_db_connection()
 
         base_driver = SqlDriver(conn=self.db_connection)
 
@@ -63,6 +68,7 @@ class DatabaseService:
             logger.info("Successfully connected to database and initialized connection pool")
             return self.db_connection
         except Exception as e:
+            self.db_connection = None
             logger.warning(
                 f"Could not connect to database: {obfuscate_password(str(e))}",
             )

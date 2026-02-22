@@ -1,5 +1,6 @@
 """SQL driver adapter for PostgreSQL connections."""
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
@@ -67,51 +68,57 @@ class DbConnPool:
         self.pool: AsyncConnectionPool | None = None
         self._is_valid = False
         self._last_error = None
+        self._connect_lock = asyncio.Lock()
 
     async def pool_connect(self, connection_url: Optional[str] = None) -> AsyncConnectionPool:
         """Initialize connection pool with retry logic."""
-        # If we already have a valid pool, return it
+        # Fast path: if pool is already valid, return without acquiring lock
         if self.pool and self._is_valid:
             return self.pool
 
-        url = connection_url or self.connection_url
-        self.connection_url = url
-        if not url:
-            self._is_valid = False
-            self._last_error = "Database connection URL not provided"
-            raise ValueError(self._last_error)
+        async with self._connect_lock:
+            # Re-check after acquiring lock (another coroutine may have connected)
+            if self.pool and self._is_valid:
+                return self.pool
 
-        # Close any existing pool before creating a new one
-        await self.close()
+            url = connection_url or self.connection_url
+            self.connection_url = url
+            if not url:
+                self._is_valid = False
+                self._last_error = "Database connection URL not provided"
+                raise ValueError(self._last_error)
 
-        try:
-            # Configure connection pool with appropriate settings
-            self.pool = AsyncConnectionPool(
-                conninfo=url,
-                min_size=1,
-                max_size=5,
-                open=False,  # Don't connect immediately, let's do it explicitly
-            )
-
-            # Open the pool explicitly
-            await self.pool.open()
-
-            # Test the connection pool by executing a simple query
-            async with self.pool.connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("SELECT 1")
-
-            self._is_valid = True
-            self._last_error = None
-            return self.pool
-        except Exception as e:
-            self._is_valid = False
-            self._last_error = str(e)
-
-            # Clean up failed pool
+            # Close any existing pool before creating a new one
             await self.close()
 
-            raise ValueError(f"Connection attempt failed: {obfuscate_password(str(e))}") from e
+            try:
+                # Configure connection pool with appropriate settings
+                self.pool = AsyncConnectionPool(
+                    conninfo=url,
+                    min_size=1,
+                    max_size=5,
+                    open=False,  # Don't connect immediately, let's do it explicitly
+                )
+
+                # Open the pool explicitly
+                await self.pool.open()
+
+                # Test the connection pool by executing a simple query
+                async with self.pool.connection() as conn:
+                    async with conn.cursor() as cursor:
+                        await cursor.execute("SELECT 1")
+
+                self._is_valid = True
+                self._last_error = None
+                return self.pool
+            except Exception as e:
+                self._is_valid = False
+                self._last_error = str(e)
+
+                # Clean up failed pool
+                await self.close()
+
+                raise ValueError(f"Connection attempt failed: {obfuscate_password(str(e))}") from e
 
     async def close(self) -> None:
         """Close the connection pool."""
