@@ -30,8 +30,7 @@ mcp = FastMCP("postgres-mcp")
 PG_STAT_STATEMENTS = "pg_stat_statements"
 HYPOPG_EXTENSION = "hypopg"
 
-ResponseType = List[types.TextContent |
-                    types.ImageContent | types.EmbeddedResource]
+ResponseType = List[types.TextContent | types.ImageContent | types.EmbeddedResource]
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +61,8 @@ def parse_host_configs_from_env() -> dict[str, HostConfig]:
         username = os.environ.get(f"DATABASES__{idx}__USERNAME")
         password = os.environ.get(f"DATABASES__{idx}__PASSWORD")
         if not username or not password:
-            raise ValueError(
-                f"DATABASES__{idx}__USERNAME and DATABASES__{idx}__PASSWORD must both be set when DATABASES__{idx}__HOST is configured")
-        configs[host] = HostConfig(
-            host=host, port=port, username=username, password=password)
+            raise ValueError(f"DATABASES__{idx}__USERNAME and DATABASES__{idx}__PASSWORD must both be set when DATABASES__{idx}__HOST is configured")
+        configs[host] = HostConfig(host=host, port=port, username=username, password=password)
 
     return configs
 
@@ -78,20 +75,17 @@ def resolve_host_config(host: Optional[str] = None) -> HostConfig:
     if host is not None:
         if host not in host_configs:
             available = ", ".join(sorted(host_configs.keys()))
-            raise ValueError(
-                f"No configuration found for host '{host}'. Available hosts: {available}")
+            raise ValueError(f"No configuration found for host '{host}'. Available hosts: {available}")
         return host_configs[host]
 
     if len(host_configs) == 1:
         return next(iter(host_configs.values()))
 
     if len(host_configs) == 0:
-        raise ValueError(
-            "No database host configured. Set DATABASE_HOST or DATABASES__N__HOST environment variables.")
+        raise ValueError("No database host configured. Set DATABASE_HOST or DATABASES__N__HOST environment variables.")
 
     available = ", ".join(sorted(host_configs.keys()))
-    raise ValueError(
-        f"Multiple database hosts are configured ({available}). The 'host' parameter is required when multiple hosts are configured.")
+    raise ValueError(f"Multiple database hosts are configured ({available}). The 'host' parameter is required when multiple hosts are configured.")
 
 
 def create_database_url_from_config(config: HostConfig, database_name: str) -> str:
@@ -103,8 +97,7 @@ async def get_service(database_name: str, host: Optional[str] = None) -> Databas
     service_key = f"{config.host}:{config.port}/{database_name}"
     if service_key not in db_services:
         database_url = create_database_url_from_config(config, database_name)
-        db_services[service_key] = DatabaseService(
-            database_url, current_access_mode, query_timeout)
+        db_services[service_key] = DatabaseService(database_url, current_access_mode, query_timeout)
     return db_services[service_key]
 
 
@@ -116,8 +109,7 @@ async def health_check(request: Request) -> Response:
 @mcp.tool(description="List all schemas in the database")
 async def list_schemas(
     database_name: str = Field(description="Database name"),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.list_schemas()
@@ -127,10 +119,8 @@ async def list_schemas(
 async def list_objects(
     database_name: str = Field(description="Database name"),
     schema_name: str = Field(description="Schema name"),
-    object_type: str = Field(
-        description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    object_type: str = Field(description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.list_objects(schema_name, object_type)
@@ -141,10 +131,8 @@ async def get_object_details(
     database_name: str = Field(description="Database name"),
     schema_name: str = Field(description="Schema name"),
     object_name: str = Field(description="Object name"),
-    object_type: str = Field(
-        description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    object_type: str = Field(description="Object type: 'table', 'view', 'sequence', or 'extension'", default="table"),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.get_object_details(schema_name, object_name, object_type)
@@ -172,8 +160,7 @@ Examples: [
 If there is no hypothetical index, you can pass an empty list.""",
         default=[],
     ),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.explain_query(sql, analyze, hypothetical_indexes)
@@ -183,8 +170,7 @@ If there is no hypothetical index, you can pass an empty list.""",
 async def execute_sql(
     database_name: str = Field(description="Database name"),
     sql: str = Field(description="SQL to run", default="all"),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.execute_sql(sql)
@@ -194,12 +180,9 @@ async def execute_sql(
 @validate_call
 async def analyze_workload_indexes(
     database_name: str = Field(description="Database name"),
-    max_index_size_mb: int = Field(
-        description="Max index size in MB", default=10000),
-    method: Literal["dta", "llm"] = Field(
-        description="Method to use for analysis", default="dta"),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    max_index_size_mb: int = Field(description="Max index size in MB", default=10000),
+    method: Literal["dta", "llm"] = Field(description="Method to use for analysis", default="dta"),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.analyze_workload_indexes(max_index_size_mb, method)
@@ -210,12 +193,9 @@ async def analyze_workload_indexes(
 async def analyze_query_indexes(
     database_name: str = Field(description="Database name"),
     queries: list[str] = Field(description="List of Query strings to analyze"),
-    max_index_size_mb: int = Field(
-        description="Max index size in MB", default=10000),
-    method: Literal["dta", "llm"] = Field(
-        description="Method to use for analysis", default="dta"),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    max_index_size_mb: int = Field(description="Max index size in MB", default=10000),
+    method: Literal["dta", "llm"] = Field(description="Method to use for analysis", default="dta"),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.analyze_query_indexes(queries, max_index_size_mb, method)
@@ -239,8 +219,7 @@ async def analyze_db_health(
         description=f"Optional. Valid values are: {', '.join(sorted([t.value for t in HealthType]))}.",
         default="all",
     ),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.analyze_db_health(health_type)
@@ -257,10 +236,8 @@ async def get_top_queries(
         "for resource-intensive queries",
         default="resources",
     ),
-    limit: int = Field(
-        description="Number of queries to return when ranking based on mean_time or total_time", default=10),
-    host: Optional[str] = Field(
-        description="Database host name or address. Only provide when explicitly requested.", default=None),
+    limit: int = Field(description="Number of queries to return when ranking based on mean_time or total_time", default=10),
+    host: Optional[str] = Field(description="Database host name or address. Only provide when explicitly requested.", default=None),
 ) -> ResponseType:
     service = await get_service(database_name, host)
     return await service.get_top_queries(sort_by, limit)
@@ -269,8 +246,7 @@ async def get_top_queries(
 async def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="PostgreSQL MCP Server")
-    parser.add_argument(
-        "database_host", help="Database host: e.g database.example.com", nargs="?")
+    parser.add_argument("database_host", help="Database host: e.g database.example.com", nargs="?")
     parser.add_argument(
         "--database-port",
         type=int,
@@ -332,8 +308,7 @@ async def main():
     current_access_mode = AccessMode(args.access_mode)
 
     raw_query_timeout = os.environ.get("QUERY_TIMEOUT")
-    query_timeout = float(
-        raw_query_timeout) if raw_query_timeout is not None else None
+    query_timeout = float(raw_query_timeout) if raw_query_timeout is not None else None
 
     # Build host configs from multi-host env vars (DATABASES__N__*)
     host_configs = parse_host_configs_from_env()
@@ -341,16 +316,12 @@ async def main():
     # Also support the legacy single-host configuration (CLI args + single env vars)
     legacy_host = os.environ.get("DATABASE_HOST", args.database_host)
     if legacy_host:
-        legacy_port = int(os.environ.get(
-            "DATABASE_PORT", str(args.database_port)))
+        legacy_port = int(os.environ.get("DATABASE_PORT", str(args.database_port)))
         if args.database_creds_file:
-            legacy_username, legacy_password = read_database_creds(
-                args.database_creds_file)
+            legacy_username, legacy_password = read_database_creds(args.database_creds_file)
         else:
-            legacy_username = os.environ.get(
-                "DATABASE_USERNAME", args.database_username)
-            legacy_password = os.environ.get(
-                "DATABASE_PASSWORD", args.database_password)
+            legacy_username = os.environ.get("DATABASE_USERNAME", args.database_username)
+            legacy_password = os.environ.get("DATABASE_PASSWORD", args.database_password)
 
         if legacy_username and legacy_password and legacy_host not in host_configs:
             host_configs[legacy_host] = HostConfig(
@@ -378,8 +349,7 @@ async def main():
         loop = asyncio.get_running_loop()
         signals = (signal.SIGTERM, signal.SIGINT)
         for s in signals:
-            loop.add_signal_handler(
-                s, lambda s=s: asyncio.create_task(shutdown(s)))
+            loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s)))
     except NotImplementedError:
         # Windows doesn't support signals properly
         logger.warning("Signal handling not supported on Windows")
@@ -401,8 +371,7 @@ def read_database_creds(creds_file: str) -> tuple[str, str]:
         with open(creds_file) as f:
             lines = f.read().splitlines()
             if len(lines) < 2:
-                raise ValueError(
-                    "Credentials file must contain at least two lines: username and password")
+                raise ValueError("Credentials file must contain at least two lines: username and password")
             return lines[0], lines[1]
     except Exception as e:
         logger.error(f"Error reading database credentials from file: {e}")

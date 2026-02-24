@@ -108,10 +108,8 @@ class TestParseHostConfigsFromEnv:
 
 
 class TestResolveHostConfig:
-    CONFIG_A = HostConfig(host="a.example.com", port=5432,
-                          username="ua", password="pa")
-    CONFIG_B = HostConfig(host="b.example.com", port=5433,
-                          username="ub", password="pb")
+    CONFIG_A = HostConfig(host="a.example.com", port=5432, username="ua", password="pa")
+    CONFIG_B = HostConfig(host="b.example.com", port=5433, username="ub", password="pb")
 
     def test_single_host_no_host_param_returns_it(self):
         with patch.object(server_module, "host_configs", {"a.example.com": self.CONFIG_A}):
@@ -127,15 +125,13 @@ class TestResolveHostConfig:
                 resolve_host_config("unknown")
 
     def test_multiple_hosts_no_host_param_raises(self):
-        configs = {"a.example.com": self.CONFIG_A,
-                   "b.example.com": self.CONFIG_B}
+        configs = {"a.example.com": self.CONFIG_A, "b.example.com": self.CONFIG_B}
         with patch.object(server_module, "host_configs", configs):
             with pytest.raises(ValueError, match="'host' parameter is required when multiple hosts are configured"):
                 resolve_host_config(None)
 
     def test_multiple_hosts_with_host_param(self):
-        configs = {"a.example.com": self.CONFIG_A,
-                   "b.example.com": self.CONFIG_B}
+        configs = {"a.example.com": self.CONFIG_A, "b.example.com": self.CONFIG_B}
         with patch.object(server_module, "host_configs", configs):
             assert resolve_host_config("b.example.com") == self.CONFIG_B
 
@@ -150,14 +146,12 @@ class TestResolveHostConfig:
 
 class TestCreateDatabaseUrlFromConfig:
     def test_url_format(self):
-        config = HostConfig(host="myhost", port=5432,
-                            username="myuser", password="mypass")
+        config = HostConfig(host="myhost", port=5432, username="myuser", password="mypass")
         url = create_database_url_from_config(config, "mydb")
         assert url == "postgresql://myuser:mypass@myhost:5432/mydb"
 
     def test_url_with_custom_port(self):
-        config = HostConfig(host="myhost", port=5433,
-                            username="u", password="p")
+        config = HostConfig(host="myhost", port=5433, username="u", password="p")
         url = create_database_url_from_config(config, "testdb")
         assert url == "postgresql://u:p@myhost:5433/testdb"
 
@@ -166,17 +160,14 @@ class TestCreateDatabaseUrlFromConfig:
 
 
 class TestGetService:
-    CONFIG = HostConfig(host="db.example.com", port=5432,
-                        username="user", password="pass")
+    CONFIG = HostConfig(host="db.example.com", port=5432, username="user", password="pass")
 
     @pytest.mark.asyncio
     async def test_creates_service_for_new_database(self):
         with (
-            patch.object(server_module, "host_configs", {
-                         "db.example.com": self.CONFIG}),
+            patch.object(server_module, "host_configs", {"db.example.com": self.CONFIG}),
             patch.object(server_module, "db_services", {}),
-            patch.object(server_module, "current_access_mode",
-                         AccessMode.UNRESTRICTED),
+            patch.object(server_module, "current_access_mode", AccessMode.UNRESTRICTED),
             patch.object(server_module, "query_timeout", None),
         ):
             service = await get_service("mydb")
@@ -185,11 +176,9 @@ class TestGetService:
     @pytest.mark.asyncio
     async def test_reuses_service_for_same_host_and_database(self):
         with (
-            patch.object(server_module, "host_configs", {
-                         "db.example.com": self.CONFIG}),
+            patch.object(server_module, "host_configs", {"db.example.com": self.CONFIG}),
             patch.object(server_module, "db_services", {}),
-            patch.object(server_module, "current_access_mode",
-                         AccessMode.UNRESTRICTED),
+            patch.object(server_module, "current_access_mode", AccessMode.UNRESTRICTED),
             patch.object(server_module, "query_timeout", None),
         ):
             service1 = await get_service("mydb")
@@ -198,15 +187,12 @@ class TestGetService:
 
     @pytest.mark.asyncio
     async def test_different_hosts_get_different_services(self):
-        config_b = HostConfig(host="other.example.com",
-                              port=5433, username="u2", password="p2")
-        configs = {"db.example.com": self.CONFIG,
-                   "other.example.com": config_b}
+        config_b = HostConfig(host="other.example.com", port=5433, username="u2", password="p2")
+        configs = {"db.example.com": self.CONFIG, "other.example.com": config_b}
         with (
             patch.object(server_module, "host_configs", configs),
             patch.object(server_module, "db_services", {}),
-            patch.object(server_module, "current_access_mode",
-                         AccessMode.UNRESTRICTED),
+            patch.object(server_module, "current_access_mode", AccessMode.UNRESTRICTED),
             patch.object(server_module, "query_timeout", None),
         ):
             service_a = await get_service("mydb", "db.example.com")
