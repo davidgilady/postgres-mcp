@@ -35,31 +35,75 @@ async def test_get_sql_driver_returns_correct_driver(access_mode, expected_drive
         driver = await service.get_sql_driver()
         assert isinstance(driver, expected_driver_type)
 
-        # When in RESTRICTED mode, verify timeout is set
-        if access_mode == AccessMode.RESTRICTED:
-            assert isinstance(driver, SafeSqlDriver)
-            assert driver.timeout == 30
-
 
 @pytest.mark.asyncio
-async def test_get_sql_driver_sets_timeout_in_restricted_mode(mock_db_connection):
-    """Test that get_sql_driver sets the timeout in restricted mode."""
+async def test_get_sql_driver_sets_restricted_mode(mock_db_connection):
+    """Test that get_sql_driver wraps with SafeSqlDriver in restricted mode."""
     service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=AccessMode.RESTRICTED)
     with patch.object(service, "db_connection", mock_db_connection):
         driver = await service.get_sql_driver()
         assert isinstance(driver, SafeSqlDriver)
-        assert driver.timeout == 30
         assert hasattr(driver, "sql_driver")
 
 
 @pytest.mark.asyncio
-async def test_get_sql_driver_in_unrestricted_mode_no_timeout(mock_db_connection):
-    """Test that get_sql_driver in unrestricted mode is a regular SqlDriver."""
+async def test_get_sql_driver_in_unrestricted_mode(mock_db_connection):
+    """Test that get_sql_driver in unrestricted mode returns a plain SqlDriver."""
     service = DatabaseService(database_url="postgresql://user:pass@localhost/test", current_access_mode=AccessMode.UNRESTRICTED)
     with patch.object(service, "db_connection", mock_db_connection):
         driver = await service.get_sql_driver()
         assert isinstance(driver, SqlDriver)
-        assert not hasattr(driver, "timeout")
+        assert not isinstance(driver, SafeSqlDriver)
+
+
+@pytest.mark.asyncio
+async def test_create_db_connection_no_timeout_restricted_mode():
+    """Test that restricted mode has no statement_timeout by default."""
+    service = DatabaseService(
+        database_url="postgresql://user:pass@localhost/test",
+        current_access_mode=AccessMode.RESTRICTED,
+    )
+    with patch.object(DbConnPool, "pool_connect", new_callable=AsyncMock):
+        pool = await service.create_db_connection()
+        assert pool.statement_timeout_seconds is None
+
+
+@pytest.mark.asyncio
+async def test_create_db_connection_no_timeout_unrestricted_mode():
+    """Test that unrestricted mode has no statement_timeout by default."""
+    service = DatabaseService(
+        database_url="postgresql://user:pass@localhost/test",
+        current_access_mode=AccessMode.UNRESTRICTED,
+    )
+    with patch.object(DbConnPool, "pool_connect", new_callable=AsyncMock):
+        pool = await service.create_db_connection()
+        assert pool.statement_timeout_seconds is None
+
+
+@pytest.mark.asyncio
+async def test_create_db_connection_custom_timeout_restricted_mode():
+    """Test that query_timeout overrides the default 30s in restricted mode."""
+    service = DatabaseService(
+        database_url="postgresql://user:pass@localhost/test",
+        current_access_mode=AccessMode.RESTRICTED,
+        query_timeout=120,
+    )
+    with patch.object(DbConnPool, "pool_connect", new_callable=AsyncMock):
+        pool = await service.create_db_connection()
+        assert pool.statement_timeout_seconds == 120
+
+
+@pytest.mark.asyncio
+async def test_create_db_connection_custom_timeout_unrestricted_mode():
+    """Test that query_timeout is applied in unrestricted mode without restricting SQL."""
+    service = DatabaseService(
+        database_url="postgresql://user:pass@localhost/test",
+        current_access_mode=AccessMode.UNRESTRICTED,
+        query_timeout=60,
+    )
+    with patch.object(DbConnPool, "pool_connect", new_callable=AsyncMock):
+        pool = await service.create_db_connection()
+        assert pool.statement_timeout_seconds == 60
 
 
 @pytest.mark.asyncio

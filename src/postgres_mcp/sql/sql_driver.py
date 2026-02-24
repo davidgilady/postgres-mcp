@@ -63,8 +63,9 @@ def obfuscate_password(text: str | None) -> str | None:
 class DbConnPool:
     """Database connection manager using psycopg's connection pool."""
 
-    def __init__(self, connection_url: Optional[str] = None):
+    def __init__(self, connection_url: Optional[str] = None, statement_timeout_seconds: float | None = None):
         self.connection_url = connection_url
+        self.statement_timeout_seconds = statement_timeout_seconds
         self.pool: AsyncConnectionPool | None = None
         self._is_valid = False
         self._last_error = None
@@ -92,12 +93,19 @@ class DbConnPool:
             await self.close()
 
             try:
+                # Build connection kwargs with optional statement_timeout
+                connect_kwargs: dict[str, Any] = {}
+                if self.statement_timeout_seconds is not None:
+                    timeout_ms = int(self.statement_timeout_seconds * 1000)
+                    connect_kwargs["options"] = f"-c statement_timeout={timeout_ms}"
+
                 # Configure connection pool with appropriate settings
                 self.pool = AsyncConnectionPool(
                     conninfo=url,
                     min_size=1,
                     max_size=5,
                     open=False,  # Don't connect immediately, let's do it explicitly
+                    kwargs=connect_kwargs if connect_kwargs else None,
                 )
 
                 # Open the pool explicitly

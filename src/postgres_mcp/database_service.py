@@ -36,9 +36,10 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseService:
-    def __init__(self, database_url: str, current_access_mode: models.AccessMode):
+    def __init__(self, database_url: str, current_access_mode: models.AccessMode, query_timeout: float | None = None):
         self.database_url = database_url
         self.current_access_mode = current_access_mode
+        self.query_timeout = query_timeout
         self._connect_lock = asyncio.Lock()
 
     db_connection: Optional[DbConnPool] = None
@@ -54,15 +55,19 @@ class DatabaseService:
 
         if self.current_access_mode == models.AccessMode.RESTRICTED:
             logger.debug("Using SafeSqlDriver with restrictions (RESTRICTED mode)")
-            # 30 second timeout
-            return SafeSqlDriver(sql_driver=base_driver, timeout=30)
+            return SafeSqlDriver(sql_driver=base_driver)
         else:
             logger.debug("Using unrestricted SqlDriver (UNRESTRICTED mode)")
             return base_driver
 
     async def create_db_connection(self) -> DbConnPool:
-        logger.info(f"Creating new database connection pool for URL: {obfuscate_password(self.database_url)}")
-        self.db_connection = DbConnPool(connection_url=self.database_url)
+        logger.info(
+            f"Creating new database connection pool for URL: {obfuscate_password(self.database_url)}, statement_timeout={self.query_timeout}s"
+        )
+        self.db_connection = DbConnPool(
+            connection_url=self.database_url,
+            statement_timeout_seconds=self.query_timeout,
+        )
         try:
             await self.db_connection.pool_connect(self.database_url)
             logger.info("Successfully connected to database and initialized connection pool")
