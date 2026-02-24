@@ -41,13 +41,14 @@ database_host: Optional[str] = None
 database_port: Optional[str] = None
 database_username: Optional[str] = None
 database_password: Optional[str] = None
+query_timeout: Optional[float] = None
 shutdown_in_progress = False
 
 
 async def get_service(database_name: str) -> DatabaseService:
     if database_name not in db_services:
         database_url = create_database_url(database_name)
-        db_services[database_name] = DatabaseService(database_url, current_access_mode)
+        db_services[database_name] = DatabaseService(database_url, current_access_mode, query_timeout)
     return db_services[database_name]
 
 
@@ -245,10 +246,14 @@ async def main():
     global database_port
     global database_username
     global database_password
+    global query_timeout
 
     current_access_mode = AccessMode(args.access_mode)
     database_host = os.environ.get("DATABASE_HOST", args.database_host)
     database_port = os.environ.get("DATABASE_PORT", args.database_port)
+
+    raw_query_timeout = os.environ.get("QUERY_TIMEOUT")
+    query_timeout = float(raw_query_timeout) if raw_query_timeout is not None else None
 
     if args.database_creds_file:
         database_username, database_password = read_database_creds(args.database_creds_file)
